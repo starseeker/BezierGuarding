@@ -16,7 +16,11 @@ class BezierTriangleInjectivityChecker
 {
   private:
     T min_area = 0.0;
-    int max_subdiv = 30;    // number of subdivisions for conservative injectivity test
+    #ifdef ALL_EXACT
+      int max_subdiv = 200; // number of subdivisions for conservative injectivity test
+    #else
+      int max_subdiv = 15;  // more does not make much sense in double precision
+    #endif
 
     int current_level = 0;
     std::vector<T> v1, v2;

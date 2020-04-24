@@ -52,5 +52,6 @@ Need to specify 1 (optionally 2) command line parameters
      -# 'b' to add bounding box
      -# 'e' to enable eps output
      -# 'g' to enable gmsh output
+     -# 'o' to enable mesh optimization via Conformal energy
 In directory containing binary "bezmeshCLI", e.g.:
 ./bezmeshCLI "path/to/your/curve_file.json" "be"

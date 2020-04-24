@@ -90,6 +90,8 @@ struct Triangle
     vector<int> vertices; // counterclockwise
     vector<int> edges;    // counterclockwise
     vector<int> ctrlpts;  // only inner controlpoints!
+
+    std::vector<int> allctrlpts;  // All controlpoints (includes offset for non vertex)
 };
 
 template<typename T>
@@ -162,6 +164,38 @@ struct BezierMesh
     vector<Triangle> allTriangles;
     
     vector<bool> ctrlpointFlipped; //remove
+
+    vector< Vec2<T> > allPts;
+    std::vector<int> contrlPts( Triangle t);
+    std::vector< std::vector<Triangle> > neighbourFaces;
+    std::vector< std::set<int> > neighbourFaces_fixedV;
+    std::vector< std::map<int, int> > localVMap;
+
+    std::vector< std::pair<double,double> > uv_sampling;
+    std::vector< std::pair<int, int> > C_IJK, C1_IJK;
+    std::vector< std::vector<T> > UV_IJK;
+
+    int m_control_point_count;
+    T bz_pow(double u, int n);
+    T bz_factorial(int n);
+    T bz_value(int degree, int i, int j, int k, double u, double v);
+    int bz_control_point_local_id(int i, int j, int k);
+    T bz_get_uv_ijk(int ui, int i, int j, int k);
+    std::vector< std::vector<T> > bz_jacobian(Triangle& t);
+    std::vector< std::vector<T> > bz_jacobian(std::vector< Vec2<T> >& bz_vt, std::vector<int>& ctrl_pt);
+
+    void bz_gradient(std::vector<int>& ctrl_pt, std::vector< std::vector<T> >& Jac, std::vector< Vec2<T> >& Grad, std::map<int, int>& map );
+    T bz_energy(std::vector< std::vector<T> >& Jac);
+    T bz_energy(vector< Vec2<T> >& CtrPt_temp, int v_id);
+    T m_lambda;
+
+    bool check_flip(vector< Vec2<T> >& ctrPt, std::vector<int>& f_ctrPt);
+    bool check_flip(vector< Vec2<T> >& ctrPt, int v_id, int f_id=-1);
+
+
+    void fillNeighbourInfo();
+    void optimization_conformal();
+    void gradient_step( int v_id);
 };
 
 } // namespace bzmsh

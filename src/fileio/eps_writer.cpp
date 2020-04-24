@@ -123,7 +123,15 @@ void EPSWriter<T>::writeEdges(ostream& out,
             || e.marker == Edge::MARK_BBOX)
         {
             assert(e.from != -1 && e.to != -1);
-            writeLine(out, LineSegment<double>(allVertices[e.from], allVertices[e.to]));
+            //writeLine(out, LineSegment<double>(allVertices[e.from], allVertices[e.to]));
+            vector<Vec2<double>> ctrlpts = {allVertices[e.from]};
+            for (int ctrlptIndex : e.ctrlpts)
+            {
+                ctrlpts.emplace_back(allCtrlpts[ctrlptIndex]);
+            }
+            ctrlpts.emplace_back(allVertices[e.to]);
+            // Vector graphics only support cubic beziers, other degrees have to be sampled
+            writeCurve(out, ctrlpts);
         }
     }
 

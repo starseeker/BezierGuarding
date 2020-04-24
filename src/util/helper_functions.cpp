@@ -127,12 +127,6 @@ bool checkMesh(BezierMesh<T>& mesh, bool& uncertain)
         reorderToRowwise(ctrlptsRecursive, ctrlptsRowwise, degree, true);
 
         BezierTriangleInjectivityChecker<T> ck(degree);
-        #ifdef ALL_EXACT
-          ck.set_max_subdiv(200); // number of subdivisions for conservative injectivity test
-        #else
-          ck.set_max_subdiv(15);  // more does not make much sense in double precision
-        #endif
-
         std::vector<T> xx, yy;
         for (const Vec2<T>& ctrlpt : ctrlptsRowwise)
         {

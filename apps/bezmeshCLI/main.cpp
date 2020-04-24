@@ -31,6 +31,7 @@ int main(int argc, char** argv)
     bool addBbox = false;
     bool epsOutput = false;
     bool gmshOutput = false;
+    bool optimizeMesh = false;
     int exp_type = -1;
     if (argc >= 3)
     {
@@ -47,6 +48,10 @@ int main(int argc, char** argv)
         {
             gmshOutput = true;
         }
+        if (flagstring.find('o') != flagstring.npos)
+        {
+            optimizeMesh = true;
+        }
         
         if (argc >= 4)
         {
@@ -55,5 +60,5 @@ int main(int argc, char** argv)
         }
     }
     
-    return bezierMeshing(filename, addBbox, epsOutput, gmshOutput, exp_type);
+    return bezierMeshing(filename, addBbox, epsOutput, gmshOutput, optimizeMesh, exp_type);
 }

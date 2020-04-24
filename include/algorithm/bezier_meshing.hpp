@@ -37,7 +37,8 @@ namespace bzmsh
 bool bezierMeshing(std::string filename,
                    bool addBbox = true,
                    bool epsOutput = true,
-                   bool gmshOutput = true, int exp_type=0);
+                   bool gmshOutput = true,
+                   bool optimizeMesh = false, int exp_type=0);
 
 } // namespace bzmsh
 

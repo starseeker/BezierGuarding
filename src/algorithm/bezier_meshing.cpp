@@ -81,7 +81,7 @@ void save_log_file(int t, std::string f_name, int t_count=-1)
     fclose(error_file);
 }
 
-bool bezierMeshing(std::string filename, bool addBbox, bool epsOutput, bool gmshOutput, int exp_type)
+bool bezierMeshing(std::string filename, bool addBbox, bool epsOutput, bool gmshOutput, bool optimizeMesh, int exp_type)
 {
 #ifdef ALL_EXACT
     Logger::lout(Logger::INFO) << "Running in EXACT mode." << endl;
@@ -392,6 +392,24 @@ bool bezierMeshing(std::string filename, bool addBbox, bool epsOutput, bool gmsh
     {
         Logger::lout(Logger::INFO) << "Writing final output to .msh-file..." << endl;
         MSHWriter<Scalar>().write(filenameBase + ".msh", mesh);
+    }
+
+    if(optimizeMesh)
+    {
+        filenameBase += "_opt";
+        Logger::lout(Logger::INFO) << "Optimizing the Triangulation..." << endl;
+        mesh.optimization_conformal();
+
+        if (epsOutput)
+        {
+            Logger::lout(Logger::INFO) << "Writing visualization output to .eps-file..." << endl;
+            EPSWriter<Scalar>().write(filenameBase + ".eps", mesh);
+        }
+        if (gmshOutput)
+        {
+            Logger::lout(Logger::INFO) << "Writing final output to .msh-file..." << endl;
+            MSHWriter<Scalar>().write(filenameBase + ".msh", mesh);
+        }
     }
     Logger::lout(Logger::INFO) << "Finished successfully." << endl;
     return true;
