@@ -94,6 +94,14 @@ struct Triangle
     std::vector<int> allctrlpts;  // All controlpoints (includes offset for non vertex)
 };
 
+struct Jacobian
+{
+    double a;
+    double b;
+    double c;
+    double d;
+};
+
 template<typename T>
 struct BezierMesh
 {
@@ -165,37 +173,122 @@ struct BezierMesh
     
     vector<bool> ctrlpointFlipped; //remove
 
+
+    //Vertex points followed by rest of control points
     vector< Vec2<T> > allPts;
-    std::vector<int> contrlPts( Triangle t);
+
+    //Pre-computation: Local triangle neighborhood information
     std::vector< std::vector<Triangle> > neighbourFaces;
     std::vector< std::set<int> > neighbourFaces_fixedV;
-    std::vector< std::map<int, int> > localVMap;
+    std::vector< std::map<int, int> > localVertexMap;
 
+    //Pre-computation: Bezier coefficients
     std::vector< std::pair<double,double> > uv_sampling;
     std::vector< std::pair<int, int> > C_IJK, C1_IJK;
-    std::vector< std::vector<T> > UV_IJK;
+    std::vector< std::vector<double> > UV_IJK;
 
+    /**
+     * @brief Total number of control points:  (degree+1)*(degree+2)/2
+     */
     int m_control_point_count;
-    T bz_pow(double u, int n);
-    T bz_factorial(int n);
-    T bz_value(int degree, int i, int j, int k, double u, double v);
+
+    /**
+     * @brief Control points (wrt global vector allPts) in row-wise ordered manner
+     *
+     * @param Triangle t
+     * @return control points of a triangle in global sense
+     */
+    std::vector<int> contrlPts( Triangle t);
+
+    /**
+     * @brief i, j, k to local id conversion
+     */
     int bz_control_point_local_id(int i, int j, int k);
-    T bz_get_uv_ijk(int ui, int i, int j, int k);
-    std::vector< std::vector<T> > bz_jacobian(Triangle& t);
-    std::vector< std::vector<T> > bz_jacobian(std::vector< Vec2<T> >& bz_vt, std::vector<int>& ctrl_pt);
 
-    void bz_gradient(std::vector<int>& ctrl_pt, std::vector< std::vector<T> >& Jac, std::vector< Vec2<T> >& Grad, std::map<int, int>& map );
-    T bz_energy(std::vector< std::vector<T> >& Jac);
-    T bz_energy(vector< Vec2<T> >& CtrPt_temp, int v_id);
-    T m_lambda;
+    /**
+     * @brief Bezier coefficients
+     *
+     * @param B^degree_{i, j, k} and (u,v) as barycentric coordinate
+     * @return coefficients value in double
+     */
+    double bz_value(int degree, int i, int j, int k, double u, double v);
 
+    /**
+     * @brief Returns previously stored Bezier coefficients to avoid multiple computations over quadrature
+     */
+    double bz_get_uv_ijk(int ui, int i, int j, int k);
+
+    /**
+     * @brief Compute Jacobian of a triangle
+     *
+     * @param triangle t
+     * @return vector of Jacobians at all quadrature points
+     */
+    std::vector<Jacobian> bz_jacobian(Triangle& t);
+
+    /**
+     * @brief Compute Jacobian of a triangle
+     *
+     * @param vector of all control points and control point id's of a triangle
+     * @return vector of Jacobians at all quadrature points
+     */
+    std::vector<Jacobian> bz_jacobian(std::vector< Vec2<T> >& ctrPt, std::vector<int>& t_ctrl_pt);
+
+    /**
+     * @brief Computes gradient of our conformal energy
+     *
+     * @param control points, jacobian, and local map(control pt id -> local id)
+     * @return Grad vector as Vec2 per control point
+     */
+    void bz_gradient(std::vector<int>& t_ctrl_pt, std::vector<Jacobian>& Jac, std::vector< Vec2<double> >& Grad, std::map<int, int>& map );
+
+    /**
+     * @brief Compute Conformal Energy of a triangle
+     *
+     * @param Jacobian vector over all quadrature points
+     * @return Conformal energy
+     */
+    double bz_energy(std::vector<Jacobian>& Jac);
+
+    /**
+     * @brief Compute Conformal Energy of 1-ring triangles around a vertex
+     *
+     * @param vector of all control points and base vertex id
+     * @return Conformal energy
+     */
+    double bz_energy(vector< Vec2<T> >& ctrPt, int v_id);
+
+    /**
+     * @brief Check orientation of all trianges around v_id
+     *
+     * @param control points of a triangle and the vector of all control points
+     * @return True if flipped
+     */
     bool check_flip(vector< Vec2<T> >& ctrPt, std::vector<int>& f_ctrPt);
-    bool check_flip(vector< Vec2<T> >& ctrPt, int v_id, int f_id=-1);
+
+    /**
+     * @brief Check orientation of 1-ring trianges around v_id
+     *
+     * @param id of base vertex and the vector of all control points
+     * @return True if flipped
+     */
+    bool check_flip(vector< Vec2<T> >& ctrPt, int v_id);
 
 
+    /**
+     * @brief Fill local triangulation information for optimization
+     */
     void fillNeighbourInfo();
-    void optimization_conformal();
+
+    /**
+     * @brief Gradient step for scale invariant conformal distortion measure [Hormann and Greiner 2000]
+     */
     void gradient_step( int v_id);
+
+    /**
+     * @brief Main function to optimize the mesh via gradient descent in a local manner (1 ring triangles)
+     */
+    void optimization_conformal();
 };
 
 } // namespace bzmsh

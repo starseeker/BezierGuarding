@@ -179,7 +179,7 @@ void BezierMesh<T>::fillNeighbourInfo()
     for( Vec2<T> p: allCtrlpts )
         allPts.push_back(p);
 
-    localVMap.clear();
+    localVertexMap.clear();
     for(int i=0; i<neighbourFaces.size(); i++)
     {
         int id = 0;
@@ -192,7 +192,7 @@ void BezierMesh<T>::fillNeighbourInfo()
                     m[c] = id++;
             }
         }
-        localVMap.push_back(m);
+        localVertexMap.push_back(m);
     }
 }
 
@@ -204,54 +204,24 @@ int BezierMesh<T>::bz_control_point_local_id(int i, int j, int k)
 }
 
 template <typename T>
-T BezierMesh<T>::bz_factorial(int n)
-{
-    if(n == 0) return utilCast<double, T>(1.0);
-    if(n == 1) return utilCast<double, T>(1.0);
-    if(n == 2) return utilCast<double, T>(2.0);
-    if(n == 3) return utilCast<double, T>(6.0);
-    T x = utilCast<double, T>(1.0);
-    while(n>1)
-    {
-        x *= utilCast<int, T>(n);
-        n--;
-    }
-    return x;
-}
-
-template <typename T>
-T BezierMesh<T>::bz_pow(double u, int n)
-{
-    T x = utilCast<double, T>(1.0);
-    if(n == 0) return x;
-
-    while(n>0)
-    {
-        x *= utilCast<double, T>(u);
-        n--;
-    }
-    return x;
-}
-
-template <typename T>
-T BezierMesh<T>::bz_value(int degree, int i, int j, int k, double u, double v)
+double BezierMesh<T>::bz_value(int degree, int i, int j, int k, double u, double v)
 {
     if(degree != i + j + k)
         printf("issue with bezier poly degree: %d = %d + %d + %d\n", degree, i, j, k);
     if(i<0 || j<0 || k<0)
         return 0.0;
-    T b = bz_factorial(degree);
+    double b = fac(degree);
     b *= pow(u, i);
     b *= pow(v, j);
     b *= pow(1.0-u-v, k);
-    b /= bz_factorial(i);
-    b /= bz_factorial(j);
-    b /= bz_factorial(k);
+    b /= fac(i);
+    b /= fac(j);
+    b /= fac(k);
     return b;
 }
 
 template <typename T>
-T BezierMesh<T>::bz_get_uv_ijk(int ui, int i, int j, int k)
+double BezierMesh<T>::bz_get_uv_ijk(int ui, int i, int j, int k)
 {
     if(i<0 || j<0 || k<0)
         return 0.0;
@@ -260,32 +230,32 @@ T BezierMesh<T>::bz_get_uv_ijk(int ui, int i, int j, int k)
 }
 
 template <typename T>
-std::vector< std::vector<T> > BezierMesh<T>::bz_jacobian(Triangle& t)
+std::vector<Jacobian> BezierMesh<T>::bz_jacobian(Triangle& t)
 {
     return bz_jacobian(allPts, t.allctrlpts);
 }
 
 template <typename T>
-std::vector< std::vector<T> > BezierMesh<T>::bz_jacobian(std::vector< Vec2<T> >& bz_vt, std::vector<int>& ctrl_pt)
+std::vector<Jacobian> BezierMesh<T>::bz_jacobian(std::vector< Vec2<T> >& ctrPt, std::vector<int>& t_ctrl_pt)
 {
     //       | j0*x_u  j1*x_u + j2*x_v |
     // J  =  |                         |
     //       | j0*y_u  j1*y_u + j2*y_v |
-    std::vector< std::vector<T> > J;
+    std::vector<Jacobian> J;
     for(unsigned int ui=0; ui<uv_sampling.size(); ui++)
     {
-        T x_u = utilCast<double, T>(0.0), x_v = utilCast<double, T>(0.0);
-        T y_u = utilCast<double, T>(0.0), y_v = utilCast<double, T>(0.0);
+        double x_u = 0.0, x_v = 0.0;
+        double y_u = 0.0, y_v = 0.0;
 
         for(int cp=0; cp<m_control_point_count; cp++)
         {
             int i = C_IJK[cp].first;
             int j = C_IJK[cp].second;
             int k = degree - i - j;
-            Vec2<T> bz = bz_vt[ ctrl_pt[cp] ];
-            T bz_vali = bz_get_uv_ijk(ui, i-1, j, k);
-            T bz_valj = bz_get_uv_ijk(ui, i, j-1, k);
-            T bz_valk = bz_get_uv_ijk(ui, i, j, k-1);
+            Vec2<double> bz = convertVec<T, double>(ctrPt[ t_ctrl_pt[cp] ]);
+            double bz_vali = bz_get_uv_ijk(ui, i-1, j, k);
+            double bz_valj = bz_get_uv_ijk(ui, i, j-1, k);
+            double bz_valk = bz_get_uv_ijk(ui, i, j, k-1);
 
             x_u += bz.x * (bz_vali-bz_valk);
             y_u += bz.y * (bz_vali-bz_valk);
@@ -293,49 +263,44 @@ std::vector< std::vector<T> > BezierMesh<T>::bz_jacobian(std::vector< Vec2<T> >&
             y_v += bz.y * (bz_valj-bz_valk);
         }
 
-        T j0 = x_u;
-        T j1 = utilCast<double, T>(SQRT3_INV) * (-x_u + utilCast<double, T>(2.0)*x_v);
-        T j2 = y_u;
-        T j3 = utilCast<double, T>(SQRT3_INV) * (-y_u + utilCast<double, T>(2.0)*y_v);
-
-        std::vector<T> j_local;
-        j_local.push_back(j0);
-        j_local.push_back(j1);
-        j_local.push_back(j2);
-        j_local.push_back(j3);
+        Jacobian j_local;
+        j_local.a = x_u;
+        j_local.b = SQRT3_INV * (-x_u + 2.0*x_v);
+        j_local.c = y_u;
+        j_local.d = SQRT3_INV * (-y_u + 2.0*y_v);
         J.push_back(j_local);
     }
     return J;
 }
 
 template <typename T>
-void BezierMesh<T>::bz_gradient(std::vector<int>& ctrl_pt, std::vector< std::vector<T> >& Jac, std::vector< Vec2<T> >& Grad, std::map<int, int>& map )
+void BezierMesh<T>::bz_gradient(std::vector<int>& t_ctrl_pt, std::vector<Jacobian>& Jac, std::vector< Vec2<double> >& Grad, std::map<int, int>& map )
 {
-    T wt = utilCast<double, T>(1.0 / uv_sampling.size());
+    double wt = 1.0 / uv_sampling.size();
     for(unsigned int ui=0; ui<uv_sampling.size(); ui++)
     {
-        T& a = Jac[ui][0];
-        T& b = Jac[ui][1];
-        T& c = Jac[ui][2];
-        T& d = Jac[ui][3];
-        T det_Jinv = utilCast<double, T>(1.0) / ((a*d) - (b*c));
-        T norm_J = (a*a) + (b*b) + (c*c) + (d*d);
+        double& a = Jac[ui].a;
+        double& b = Jac[ui].b;
+        double& c = Jac[ui].c;
+        double& d = Jac[ui].d;
+        double det_Jinv = 1.0 / ((a*d) - (b*c));
+        double norm_J = (a*a) + (b*b) + (c*c) + (d*d);
 
         for(int i=0; i<=degree; i++)
         {
             for(int j=0; i+j<=degree; j++)
             {
                 int k = degree - i - j;
-                int id = ctrl_pt[ bz_control_point_local_id(i, j, k) ];
+                int id = t_ctrl_pt[ bz_control_point_local_id(i, j, k) ];
 
-                T bz_vali = bz_get_uv_ijk(ui, i-1, j, k);
-                T bz_valj = bz_get_uv_ijk(ui, i, j-1, k);
-                T bz_valk = bz_get_uv_ijk(ui, i, j, k-1);
+                double bz_vali = bz_get_uv_ijk(ui, i-1, j, k);
+                double bz_valj = bz_get_uv_ijk(ui, i, j-1, k);
+                double bz_valk = bz_get_uv_ijk(ui, i, j, k-1);
 
-                T d_a = (bz_vali - bz_valk);
-                T d_b = -SQRT3_INV*(bz_vali - bz_valk) + 2.0*SQRT3_INV*(bz_valj - bz_valk);
+                double d_a = (bz_vali - bz_valk);
+                double d_b = -SQRT3_INV*(bz_vali - bz_valk) + 2.0*SQRT3_INV*(bz_valj - bz_valk);
 
-                Vec2<T> g = Grad[ map[id] ];
+                Vec2<double> g = Grad[ map[id] ];
                 g.x += wt * (det_Jinv*(2*a*d_a + 2*b*d_b - (d*d_a - c*d_b)*norm_J*det_Jinv));
                 g.y += wt * (det_Jinv*(2*d*d_b + 2*c*d_a - (a*d_b - b*d_a)*norm_J*det_Jinv));
                 Grad[ map[id] ] = g;
@@ -345,18 +310,18 @@ void BezierMesh<T>::bz_gradient(std::vector<int>& ctrl_pt, std::vector< std::vec
 }
 
 template <typename T>
-T BezierMesh<T>::bz_energy(std::vector< std::vector<T> >& Jac)
+double BezierMesh<T>::bz_energy(std::vector<Jacobian>& Jac)
 {
-    T e = utilCast<double, T>(0.0);
-    for(std::vector<T> j : Jac)
+    double e = 0.0;
+    for(Jacobian j : Jac)
     {
-        T& a = j[0];
-        T& b = j[1];
-        T& c = j[2];
-        T& d = j[3];
+        double& a = j.a;
+        double& b = j.b;
+        double& c = j.c;
+        double& d = j.d;
 
-        T det = (a*d) - (b*c);
-        T nume = (a*a) + (b*b) + (c*c) + (d*d);
+        double det = (a*d) - (b*c);
+        double nume = (a*a) + (b*b) + (c*c) + (d*d);
         e += nume / det;
     }
     e /= uv_sampling.size(); //weight of the sample
@@ -364,12 +329,12 @@ T BezierMesh<T>::bz_energy(std::vector< std::vector<T> >& Jac)
 }
 
 template <typename T>
-T BezierMesh<T>::bz_energy(vector< Vec2<T> >& CtrPt_temp, int v_id)
+double BezierMesh<T>::bz_energy(vector< Vec2<T> >& ctrPt, int v_id)
 {
-    T e = 0.0;
+    double e = 0.0;
     for(Triangle t : neighbourFaces[v_id])
     {
-        std::vector< std::vector<T> > jac = bz_jacobian(CtrPt_temp, t.allctrlpts);
+        std::vector<Jacobian> jac = bz_jacobian(ctrPt, t.allctrlpts);
         e += bz_energy(jac);
     }
     return e;
@@ -392,19 +357,14 @@ bool BezierMesh<T>::check_flip(vector< Vec2<T> >& ctrPt, std::vector<int>& f_ctr
 }
 
 template <typename T>
-bool BezierMesh<T>::check_flip(vector< Vec2<T> >& ctrPt, int v_id, int f_id)
+bool BezierMesh<T>::check_flip(vector< Vec2<T> >& ctrPt, int v_id)
 {
-    if(-1 == f_id)
+    for(Triangle& t : neighbourFaces[v_id])
     {
-        for(Triangle& t : neighbourFaces[v_id])
-        {
-            if(check_flip(ctrPt, t.allctrlpts))
-                return true;
-        }
-        return false;
+        if(check_flip(ctrPt, t.allctrlpts))
+            return true;
     }
-
-    return check_flip(ctrPt, neighbourFaces[v_id][f_id].allctrlpts);
+    return false;
 }
 
 template <typename T>
@@ -414,50 +374,49 @@ void BezierMesh<T>::gradient_step(int v_id)
         return;
 
     int max_itr = 30;
-    std::vector< Vec2<T> > Grad;
+    std::vector< Vec2<double> > Grad;
 
-    for(unsigned int i=0; i<localVMap[v_id].size(); i++)
-        Grad.push_back(Vec2<T>(0.0, 0.0));
+    for(unsigned int i=0; i<localVertexMap[v_id].size(); i++)
+        Grad.push_back(Vec2<double>(0.0, 0.0));
 
    for(Triangle t : neighbourFaces[v_id])
    {
-       std::vector< std::vector<T> > Jac = bz_jacobian(t);
-       bz_gradient(t.allctrlpts, Jac, Grad, localVMap[v_id] );
+       std::vector<Jacobian> Jac = bz_jacobian(t);
+       bz_gradient(t.allctrlpts, Jac, Grad, localVertexMap[v_id] );
    }
 
    //Mark fixed points
    for(int i : neighbourFaces_fixedV[v_id])
-       Grad[ localVMap[v_id][i] ] = Vec2<T>(utilCast<double, T>(0.0), utilCast<double, T>(0.0));
-   //printf("fixed = %ld / %ld\n", neighbourFaces_fixedV[v_id].size(), localVMap[v_id].size());
+       Grad[ localVertexMap[v_id][i] ] = Vec2<double>(0.0, 0.0);
 
-   vector< Vec2<T> > CtrPt_temp = allPts;
+   vector< Vec2<T> > ctrPt_temp = allPts;
 
-   T new_energy;
-   T old_energy = bz_energy(CtrPt_temp, v_id);
+   double new_energy;
+   double old_energy = bz_energy(ctrPt_temp, v_id);
 
    int itr = 0;
-   m_lambda = utilCast<double, T>(2.0);
+   double m_lambda = 2.0;
    for(int k=0; k<2; k++)
    {
-       m_lambda *= utilCast<double, T>(0.5);
-       for(std::pair<int, int> m : localVMap[v_id])
+       m_lambda *= 0.5;
+       for(std::pair<int, int> m : localVertexMap[v_id])
        {
-           CtrPt_temp[m.first].x = allPts[m.first].x - m_lambda*Grad[m.second].x;
-           CtrPt_temp[m.first].y = allPts[m.first].y - m_lambda*Grad[m.second].y;
+           ctrPt_temp[m.first].x = allPts[m.first].x - utilCast<double, T>(m_lambda*Grad[m.second].x);
+           ctrPt_temp[m.first].y = allPts[m.first].y - utilCast<double, T>(m_lambda*Grad[m.second].y);
        }
        if(0 == k)
        {
-           if(check_flip(CtrPt_temp, v_id))
+           if(check_flip(ctrPt_temp, v_id))
                k = -1;
            else //flips checking done
                k = 1;
        }
        if(1 == k)
        {
-           new_energy = bz_energy(CtrPt_temp, v_id);
+           new_energy = bz_energy(ctrPt_temp, v_id);
            if(new_energy>old_energy)
                k = 0;
-           else if(check_flip(CtrPt_temp, v_id)) // Unexpected flip with smaller step size
+           else if(check_flip(ctrPt_temp, v_id)) // Unexpected flip with smaller step size
                k = -1;
        }
 
@@ -469,9 +428,9 @@ void BezierMesh<T>::gradient_step(int v_id)
    {
        //printf("lambda(%d) = %0.10f\n", itr, m_lambda);
        //double percentage = 100.0*(old_energy-new_energy) / old_energy;
-       //printf("BZ E reduction = %0.10f %%  (%f/%f)\n", percentage, new_energy, old_energy);
+       //printf("E reduction = %0.10f %%  (%f/%f)\n", percentage, new_energy, old_energy);
 
-       allPts = CtrPt_temp;
+       allPts = ctrPt_temp;
        old_energy = new_energy;
    }
 }
@@ -483,6 +442,8 @@ void BezierMesh<T>::optimization_conformal()
     m_control_point_count = (degree+1)*(degree+2)/2;
 
     //Set Quadrature and Local ids
+
+    //Reverse map: id -> i,j,k
     C_IJK.resize(m_control_point_count);
     C1_IJK.resize(degree*(degree+1)/2);
     for(int i=0; i<=degree; i++)
@@ -503,6 +464,8 @@ void BezierMesh<T>::optimization_conformal()
             C1_IJK[id] = std::make_pair(i, j);
         }
     }
+
+    //Quadrature for Energy computation
     int quadrature = 36*(degree-1);
     quadrature = (std::sqrt(8*quadrature+1) - 1.0)/2.0;
     if(quadrature<1)
@@ -521,23 +484,24 @@ void BezierMesh<T>::optimization_conformal()
         }
     }
 
+    //Pre-compute Bezier coefficients
     for(unsigned int i=0; i<uv_sampling.size(); i++)
     {
         double& u = uv_sampling[i].first;
         double& v = uv_sampling[i].second;
 
-        std::vector<T> uv_ijk;
+        std::vector<double> uv_ijk;
         for(unsigned int cp=0; cp<C1_IJK.size(); cp++)
         {
             int i = C1_IJK[cp].first;
             int j = C1_IJK[cp].second;
             int k = degree - i - j - 1;
-            uv_ijk.push_back( utilCast<double, T>(degree)*bz_value(degree-1, i, j, k, u, v) );
+            uv_ijk.push_back( degree*bz_value(degree-1, i, j, k, u, v) );
         }
         UV_IJK.emplace_back(uv_ijk);
     }
 
-    //Fill Neighborhood
+    //Fill Neighborhood information for all the vertices
     fillNeighbourInfo();
 
 
@@ -551,6 +515,7 @@ void BezierMesh<T>::optimization_conformal()
         }
     }
 
+    //Update triangulation variables
     int offset = allVertices.size();
     for( unsigned int i=0; i<allPts.size(); i++)
     {
