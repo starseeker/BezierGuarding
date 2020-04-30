@@ -43,6 +43,8 @@ Need to specify 1 (optionally 2) command line parameters
      * 'e' to enable eps output
      * 'g' to enable gmsh output
      * 'o' to enable basic mesh relaxation postprocessing
+
+
 In directory containing binary "bezmeshCLI", e.g.:
 ```
 ./bezmeshCLI "path/to/your/curve_file.json" be
