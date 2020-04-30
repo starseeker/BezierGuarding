@@ -10,7 +10,7 @@ It furthermore includes various algorithmic preprocessing steps that attempt to 
 
 The code includes the EXACT as well as the FLOAT variant of the algorithm, as explained in the above article. It can be configured as either by setting the ALL_EXACT flag to True or False in CMake.
 
-The input is expected in a simple .json format (see the included example data). In the end the algorithm reports success or failure and optionally (see the command line parameter description below) outputs the generated higher-order mesh in .msh format and/or a visualization in .eps format. Note that these output formats require rounding to standard limited precision floating point numbers, which may cause numerical degeneracies even if the code was run in EXACT mode. While the code does not include a full-fledged mesh optimization stage for the initially generated valid mesh, with the o-flag (se below) a very basic mesh relaxation postprocess can be enabled, increasing the chance that afterwards also complicated results can be written to file without numerical issues.
+The input is expected in a simple .json format (see the included example data). In the end the algorithm reports success or failure and optionally (see the command line parameter description below) outputs the generated higher-order mesh in .msh format and/or a visualization in .eps format. Note that these output formats require rounding to standard limited precision floating point numbers, which may cause numerical degeneracies even if the code was run in EXACT mode. While the code does not include a full-fledged mesh optimization stage for the initially generated valid mesh, with the o-flag (see below) a very basic mesh relaxation postprocess can be enabled, increasing the chance that afterwards also complicated results can be written to file without numerical issues.
 
 See the LICENSE file for license information.
 
@@ -20,28 +20,30 @@ See the LICENSE file for license information.
 
 ## Requirements
 
--# CMake (v >= 3.1)
--# GMP library
--# GMPXX library
--# CGAL (only in EXACT mode)
+* CMake (v >= 3.1)
+* GMP library
+* GMPXX library
+* CGAL (only in EXACT mode)
 
 ## Building
 
 In project root directory:
--# mkdir build
--# cd build
--# cmake .. -DALL_EXACT=True (to build the EXACT version)
--# OR: cmake .. -DALL_EXACT=False (to build the FLOAT version)
--# make
+* mkdir build
+* cd build
+* cmake .. -DALL_EXACT=True (to build the EXACT version)
+* OR: cmake .. -DALL_EXACT=False (to build the FLOAT version)
+* make
 
 ## Running
 
 Need to specify 1 (optionally 2) command line parameters
-  -# path to the input file in .json format
-  -# string with char-flags:
-     -# 'b' to add bounding box curves
-     -# 'e' to enable eps output
-     -# 'g' to enable gmsh output
-     -# 'o' to enable basic mesh relaxation postprocessing
+  * path to the input file in .json format
+  * string with char-flags:
+     * 'b' to add bounding box curves
+     * 'e' to enable eps output
+     * 'g' to enable gmsh output
+     * 'o' to enable basic mesh relaxation postprocessing
 In directory containing binary "bezmeshCLI", e.g.:
-./bezmeshCLI "path/to/your/curve_file.json" "be"
+```
+./bezmeshCLI "path/to/your/curve_file.json" be
+```
