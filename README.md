@@ -14,6 +14,8 @@ The input is expected in a simple .json format (see the included example data). 
 
 See the LICENSE file for license information.
 
+Version: 1.0
+
 
 
 ### HOW TO USE
