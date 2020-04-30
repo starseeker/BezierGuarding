@@ -12,6 +12,8 @@ The code includes the EXACT as well as the FLOAT variant of the algorithm, as ex
 
 The input is expected in a simple .json format (see the included example data). In the end the algorithm reports success or failure and optionally (see the command line parameter description below) outputs the generated higher-order mesh in .msh format and/or a visualization in .eps format. Note that these output formats require rounding to standard limited precision floating point numbers, which may cause numerical degeneracies even if the code was run in EXACT mode. While the code does not include a full-fledged mesh optimization stage for the initially generated valid mesh, with the o-flag (se below) a very basic mesh relaxation postprocess can be enabled, increasing the chance that afterwards also complicated results can be written to file without numerical issues.
 
+See the LICENSE file for license information.
+
 
 
 ### HOW TO USE
