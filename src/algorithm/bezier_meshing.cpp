@@ -397,7 +397,7 @@ bool bezierMeshing(std::string filename, bool addBbox, bool epsOutput, bool gmsh
     if(optimizeMesh)
     {
         filenameBase += "_opt";
-        Logger::lout(Logger::INFO) << "Optimizing the Triangulation..." << endl;
+        Logger::lout(Logger::INFO) << "Relaxing the triangulation (may take a while)..." << endl;
         mesh.optimization_conformal();
 
         if (epsOutput)
