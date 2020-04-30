@@ -51,6 +51,7 @@ int main(int argc, char** argv)
         if (flagstring.find('o') != flagstring.npos)
         {
             optimizeMesh = true;
+            addBbox = true; //Default
         }
         
         if (argc >= 4)
